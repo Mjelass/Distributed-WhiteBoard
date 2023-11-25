@@ -1,0 +1,4 @@
+./node_modules
+Dockerfile
+Dockerfile.mongodb
+docker-compose.yml

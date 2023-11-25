@@ -1,0 +1,137 @@
+<!-- public/index.html (Frontend) -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      #whiteboard {
+        border: 1px solid #000;
+      }
+    </style>
+    <title>Whiteboard</title>
+  </head>
+  <body>
+    <canvas id="whiteboard" width="800" height="600"></canvas>
+
+    <script>
+      const canvas = document.getElementById('whiteboard')
+      const context = canvas.getContext('2d')
+      let drawingPaths = [] //JSON.parse(localStorage.getItem('drawingPaths')) || []
+
+      function redrawCanvas() {
+        // Clear the canvas
+        context.clearRect(0, 0, canvas.width, canvas.height)
+
+        // Draw all paths on the canvas
+        console.log(drawingPaths)
+        drawingPaths.forEach((path) => {
+          //if (Array.isArray(path)) {
+          drawPath(path)
+          //}
+        })
+      }
+
+      function fetchDrawingHistory() {
+        fetch('/drawings')
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error('Failed to fetch drawing history')
+            }
+            return response.json()
+          })
+          .then((drawHistory) => {
+            // Append the fetched drawing history to the existing paths
+            drawingPaths = [...drawingPaths, ...drawHistory]
+
+            // Redraw the canvas with updated paths
+            redrawCanvas()
+          })
+          .catch((error) =>
+            console.error('Error fetching drawing history:', error)
+          )
+      }
+
+      function drawPath(point) {
+        context.lineWidth = 2
+        context.lineCap = 'round'
+        context.strokeStyle = '#000'
+        //console.log(path)
+        context.beginPath()
+        //path.forEach((point) => {
+        context.lineTo(point.x, point.y)
+        //})
+        context.stroke()
+      }
+
+      // Fetch drawing history every 5 seconds
+      setInterval(fetchDrawingHistory, 1000)
+
+      // Handle mouse events for drawing
+      let drawing = false
+      let currentPath = []
+
+      canvas.addEventListener('mousedown', startDrawing)
+      canvas.addEventListener('mouseup', stopDrawing)
+      canvas.addEventListener('mousemove', draw)
+
+      function startDrawing(e) {
+        drawing = true
+        currentPath = []
+        draw(e)
+      }
+
+      function stopDrawing() {
+        drawing = false
+        // Save the completed path to the array
+        drawingPaths.push([...currentPath])
+        context.beginPath()
+
+        // Save drawingPaths to local storage
+        //localStorage.setItem('drawingPaths', JSON.stringify(drawingPaths))
+      }
+
+      function draw(e) {
+        if (!drawing) return
+
+        const x = e.clientX - canvas.offsetLeft
+        const y = e.clientY - canvas.offsetTop
+
+        // Add the current point to the path
+        currentPath.push({ x, y })
+
+        // Send drawing data to the server
+        saveDrawingData(x, y)
+
+        if (currentPath.length > 1) {
+          // Draw the path without connecting the last endpoint to the next beginning point
+          context.beginPath()
+          context.moveTo(
+            currentPath[currentPath.length - 2].x,
+            currentPath[currentPath.length - 2].y
+          )
+          context.lineTo(x, y)
+          context.stroke()
+        }
+      }
+
+      function saveDrawingData(x, y) {
+        // Send drawing data to the server for storage
+        fetch('/drawings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ x, y }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error('Failed to save drawing data')
+            }
+          })
+          .catch((error) => console.error('Error saving drawing data:', error))
+      }
+    </script>
+  </body>
+</html>
