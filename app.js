@@ -3,11 +3,12 @@ const express = require('express')
 const http = require('http')
 const mongoose = require('mongoose')
 const path = require('path')
+const cors = require('cors')
 
 // Create Express app and server
 const app = express()
 const server = http.createServer(app)
-
+app.use(cors())
 // MongoDB Connection
 const mongoUrl = 'mongodb://mongo:27017/mydatabase'
 /* 'mongodb+srv://admin:cvtzt5JW0VUmUgPw@cluster0.bhohcl2.mongodb.net/?retryWrites=true&w=majority'*/
